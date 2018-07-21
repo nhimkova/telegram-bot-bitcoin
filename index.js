@@ -2,8 +2,12 @@ var express = require('express')
 var app = express()
 var bodyParser = require('body-parser')
 const axios = require('axios')
-var apiKey = 'xxxxxxx' //Add your bot key here
-var btcUrl = 'https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD'
+var apiKey = 'xxxxxxxx' //Add your bot key here
+
+var keywordToUrlMap = {
+  'bitcoin': 'https://min-api.cryptocompare.com/data/price?fsym=BTC&tsyms=USD',
+  'news': 'https://min-api.cryptocompare.com/data/v2/news/?lang=EN'
+}
 
 app.use(bodyParser.json()) 
 app.use(
@@ -12,21 +16,39 @@ app.use(
   })
 ) 
 
-var hasBTC = function(text) {
+var checkKeyword = function(text) {
   text = text.toLowerCase();
   if (text.indexOf('bitcoin') > -1) {
-    return true
+    return {'hasKeyword': true, 'keyword': 'bitcoin'}
   }
   if (text.indexOf('btc') > -1) {
-    return true
+    return {'hasKeyword': true, 'keyword': 'bitcoin'}
   }
-  return false;
+  if (text.indexOf('news') > -1) {
+    return {'hasKeyword': true, 'keyword': 'news'}
+  }
+  return {'hasKeyword': false, 'keyword': ''};
 }
 
-var getBTCPrice = function() {
+var getTextResponse = function(response, keyword){
+  let text = ""
+  switch (keyword) {
+    case 'bitcoin':
+      text = 'Bitcoin is at ' + response.data.USD;
+      break;
+    case 'news':
+      text = response.data.Data[0].title + '\n' + response.data.Data[0].url
+      break;
+  }
+  return text;
+}
+
+var getInfo = function(keyword) {
   return new Promise(resolve => {
+    var url = keywordToUrlMap[keyword];
+    console.log(url);
     axios
-    .get(btcUrl)
+    .get(url)
     .then(response => {
         resolve(response);
     })
@@ -36,21 +58,25 @@ var getBTCPrice = function() {
 app.post('/new-message', function(req, res) {
   const { message } = req.body
 
-  if (!message || !hasBTC(message.text)) {
+  if (!message) {
+    return res.end()
+  }
+  var kResult = checkKeyword(message.text)
+  if (!kResult.hasKeyword) {
     return res.end()
   }
 
-  var url = 'https://api.telegram.org/bot' + apiKey + '/sendMessage'
-  console.log(url, message.chat.id)
-  getBTCPrice()
-  .then(btcPrice => {
-    console.log(url, message.chat.id)
+  getInfo(kResult.keyword)
+  .then(infoResponse => {
+    var text = getTextResponse(infoResponse, kResult.keyword);
+    var url = 'https://api.telegram.org/bot' + apiKey + '/sendMessage'
+    console.log(url, message.chat.id, text)
     axios
     .post(
       url,
       {
         chat_id: message.chat.id,
-        text: "Bitcoin is at " + btcPrice.data.USD
+        text: text
       }
     )
     .then(response => {

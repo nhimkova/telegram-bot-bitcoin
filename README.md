@@ -1,4 +1,6 @@
-# Telegram chat bot for bitcoin price
+# Telegram chat bot for bitcoin price and news
+
+Type bitcoin or news and get the latest price or news when talking to your bot.
 
 Project based on the following tutorial
 https://www.sohamkamani.com/blog/2016/09/21/making-a-telegram-bot/
