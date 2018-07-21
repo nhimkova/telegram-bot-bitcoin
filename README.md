@@ -1,4 +1,5 @@
 # Telegram chat bot for bitcoin price and news
+## Using the CryptoCompare API
 
 Type bitcoin or news and get the latest price or news when talking to your bot.
 
